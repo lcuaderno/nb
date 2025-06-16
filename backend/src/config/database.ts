@@ -1,30 +1,43 @@
 import { Pool } from 'pg';
 
+// Determine if we're running in Docker
+const isDocker = process.env.NODE_ENV === 'production';
+
 // Initialize database connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/products'
+  host: isDocker ? 'db' : 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'products',
 });
 
 // Initialize database
-async function initializeDatabase() {
+export const initializeDatabase = async () => {
   try {
-    await pool.query(`
+    const client = await pool.connect();
+    console.log('Successfully connected to database');
+    
+    // Create products table if it doesn't exist
+    await client.query(`
       CREATE TABLE IF NOT EXISTS products (
-        id UUID PRIMARY KEY,
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(255) NOT NULL,
-        description TEXT NOT NULL,
-        tags TEXT[],
+        description TEXT,
         price DECIMAL(10,2) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
+        tags TEXT[] DEFAULT '{}',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
     `);
-    console.log('Database initialized successfully');
-  } catch (err) {
-    console.error('Error initializing database:', err);
-    process.exit(1);
+    
+    client.release();
+    return pool;
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    throw error;
   }
-}
+};
 
 // Initialize database before exporting
 initializeDatabase();

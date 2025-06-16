@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import { ProductService } from '../services/product.service';
+import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../controllers/product.controller';
 
 const router = Router();
-const productService = new ProductService();
 
 /**
  * @swagger
@@ -18,16 +17,23 @@ const productService = new ProductService();
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Product'
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     format: uuid
+ *                   name:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   price:
+ *                     type: number
+ *                   tags:
+ *                     type: array
+ *                     items:
+ *                       type: string
  */
-router.get('/', async (req, res) => {
-  try {
-    const products = await productService.list();
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
-  }
-});
+router.get('/', getAllProducts);
 
 /**
  * @swagger
@@ -45,25 +51,10 @@ router.get('/', async (req, res) => {
  *     responses:
  *       200:
  *         description: Product details
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Product'
  *       404:
  *         description: Product not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', async (req, res) => {
-  try {
-    const product = await productService.get(req.params.id);
-    res.json(product);
-  } catch (error) {
-    res.status(404).json({ message: (error as Error).message, error: 'Not Found', statusCode: 404 });
-  }
-});
+router.get('/:id', getProductById);
 
 /**
  * @swagger
@@ -79,7 +70,6 @@ router.get('/:id', async (req, res) => {
  *             type: object
  *             required:
  *               - name
- *               - description
  *               - price
  *             properties:
  *               name:
@@ -94,26 +84,11 @@ router.get('/:id', async (req, res) => {
  *                   type: string
  *     responses:
  *       201:
- *         description: Product created successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Product'
+ *         description: Product created
  *       400:
  *         description: Invalid input
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-router.post('/', async (req, res) => {
-  try {
-    const product = await productService.create(req.body);
-    res.status(201).json(product);
-  } catch (error) {
-    res.status(400).json({ message: (error as Error).message, error: 'Bad Request', statusCode: 400 });
-  }
-});
+router.post('/', createProduct);
 
 /**
  * @swagger
@@ -147,26 +122,11 @@ router.post('/', async (req, res) => {
  *                   type: string
  *     responses:
  *       200:
- *         description: Product updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Product'
+ *         description: Product updated
  *       404:
  *         description: Product not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', async (req, res) => {
-  try {
-    const product = await productService.update(req.params.id, req.body);
-    res.json(product);
-  } catch (error) {
-    res.status(404).json({ message: (error as Error).message, error: 'Not Found', statusCode: 404 });
-  }
-});
+router.put('/:id', updateProduct);
 
 /**
  * @swagger
@@ -182,22 +142,11 @@ router.put('/:id', async (req, res) => {
  *           type: string
  *         description: Product ID
  *     responses:
- *       204:
- *         description: Product deleted successfully
+ *       200:
+ *         description: Product deleted
  *       404:
  *         description: Product not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', async (req, res) => {
-  try {
-    await productService.delete(req.params.id);
-    res.status(204).send();
-  } catch (error) {
-    res.status(404).json({ message: (error as Error).message, error: 'Not Found', statusCode: 404 });
-  }
-});
+router.delete('/:id', deleteProduct);
 
 export const productRoutes = router; 

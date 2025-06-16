@@ -10,6 +10,9 @@ COPY . .
 
 RUN npm run build
 
-EXPOSE 3000
+EXPOSE 3010
 
-CMD ["npm", "start"] 
+ENV NODE_ENV=development
+ENV PORT=3010
+
+CMD ["node", "dist/index.js"] 
