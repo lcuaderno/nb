@@ -1,19 +1,36 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Product } from '../types';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+
+// Configure axios defaults
+axios.defaults.baseURL = 'http://localhost:3010';
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  tags: string[];
+}
 
 export default function ProductList() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: products, isLoading, error } = useQuery<Product[]>({
+  const { data: products, isLoading, error: queryError } = useQuery<Product[]>({
     queryKey: ['products'],
     queryFn: async () => {
-      const response = await axios.get('/api/products');
-      return response.data;
-    },
+      try {
+        const response = await axios.get('/api/products');
+        return response.data;
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to fetch products. Please try again later.');
+        throw err;
+      }
+    }
   });
 
   const deleteMutation = useMutation({
@@ -23,16 +40,11 @@ export default function ProductList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setDeleteId(null);
-    },
+    }
   });
 
-  if (isLoading) {
-    return <div className="text-center py-4">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-4 text-red-600">Error loading products</div>;
-  }
+  if (isLoading) return <div className="text-center py-4">Loading...</div>;
+  if (error || queryError) return <div className="text-center py-4 text-red-600">Error: {error || 'Failed to load products'}</div>;
 
   return (
     <div>
@@ -43,7 +55,7 @@ export default function ProductList() {
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
           <Link
             to="/products/new"
-            className="btn btn-primary"
+            className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
           >
             Add Product
           </Link>
@@ -57,10 +69,11 @@ export default function ProductList() {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Price</th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tags</th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Description</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Price</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tags</th>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -72,10 +85,13 @@ export default function ProductList() {
                         {product.name}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                        {product.description}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                         ${product.price.toFixed(2)}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                        {product.tags.join(', ')}
+                        {product.tags?.join(', ')}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <Link
@@ -110,13 +126,13 @@ export default function ProductList() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setDeleteId(null)}
-                className="btn"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
               >
                 Cancel
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteId)}
-                className="btn btn-danger"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
               >
                 Delete
               </button>

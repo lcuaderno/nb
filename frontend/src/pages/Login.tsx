@@ -18,7 +18,7 @@ export default function Login() {
       // In a real application, you would make an API call to your backend
       if (username === 'admin' && password === 'admin') {
         login('demo-token');
-        navigate('/admin/products');
+        navigate('/products');
       } else {
         setError('Invalid credentials');
       }
