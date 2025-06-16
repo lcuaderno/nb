@@ -14,28 +14,49 @@ const pool = new Pool({
 
 // Initialize database
 export const initializeDatabase = async () => {
-  try {
-    const client = await pool.connect();
-    console.log('Successfully connected to database');
-    
-    // Create products table if it doesn't exist
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS products (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        price DECIMAL(10,2) NOT NULL,
-        tags TEXT[] DEFAULT '{}',
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    
-    client.release();
-    return pool;
-  } catch (error) {
-    console.error('Error initializing database:', error);
-    throw error;
+  let retries = 5;
+  while (retries > 0) {
+    try {
+      const client = await pool.connect();
+      console.log('Successfully connected to database');
+      
+      // Check if table exists
+      const tableExists = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'products'
+        );
+      `);
+
+      if (!tableExists.rows[0].exists) {
+        // Create products table if it doesn't exist
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS products (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            price DECIMAL(10,2) NOT NULL,
+            tags TEXT[] DEFAULT '{}',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        console.log('Products table created successfully');
+      } else {
+        console.log('Products table already exists');
+      }
+      
+      client.release();
+      return pool;
+    } catch (error) {
+      console.error(`Error connecting to database (retries left: ${retries}):`, error);
+      retries--;
+      if (retries === 0) {
+        throw error;
+      }
+      // Wait for 5 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
   }
 };
 
