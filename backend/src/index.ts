@@ -1,42 +1,21 @@
-import fastify from 'fastify';
-import cors from '@fastify/cors';
-import swagger from '@fastify/swagger';
-import swaggerUi from '@fastify/swagger-ui';
+import express from 'express';
+import cors from 'cors';
 import { productRoutes } from './routes/product.routes';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import pool from './config/database';
 
-const server = fastify({
-  logger: true
-});
+const app = express();
+const port = process.env.PORT || 3000;
 
-// Register plugins
-server.register(cors, {
-  origin: true
-});
+app.use(cors());
+app.use(express.json());
 
-// Register Swagger
-server.register(swagger, {
-  openapi: {
-    info: {
-      title: 'Product Metadata API',
-      description: 'API for managing product metadata',
-      version: '1.0.0'
-    },
-    servers: [
-      {
-        url: 'http://localhost:3000',
-        description: 'Development server'
-      }
-    ]
-  }
-});
+// Swagger documentation route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-server.register(swaggerUi, {
-  routePrefix: '/documentation'
-});
-
-// Register routes
-server.register(productRoutes);
+// API routes
+app.use('/api/products', productRoutes);
 
 // Start server
 const start = async () => {
@@ -45,11 +24,11 @@ const start = async () => {
     await pool.query('SELECT NOW()');
     console.log('Database connection successful');
 
-    await server.listen({ port: 3000, host: '0.0.0.0' });
-    console.log('Server is running on http://localhost:3000');
-    console.log('API documentation available at http://localhost:3000/documentation');
+    await app.listen(port);
+    console.log(`Server is running on port ${port}`);
+    console.log(`API documentation available at http://localhost:${port}/api-docs`);
   } catch (err) {
-    server.log.error(err);
+    console.error(err);
     process.exit(1);
   }
 };
