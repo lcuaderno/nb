@@ -1,6 +1,6 @@
 # Product Metadata Microservice
 
-A TypeScript-based microservice that exposes a REST API for managing product metadata. This service enables integration with search, recommendation, and AI enrichment services.
+A TypeScript-based microservice for managing product metadata, built with Node.js, Express, and PostgreSQL.
 
 ## Features
 
@@ -21,95 +21,145 @@ A TypeScript-based microservice that exposes a REST API for managing product met
 
 ## Prerequisites
 
-- Node.js 18 or higher
-- Docker and Docker Compose (optional)
+- Node.js (v18 or higher)
+- PostgreSQL (v14 or higher)
+- Docker and Docker Compose (optional, for containerized setup)
 
-## Installation
+## Project Structure
 
-1. Clone the repository
-2. Install dependencies:
+```
+backend/
+├── src/
+│   ├── config/         # Configuration files
+│   ├── models/         # Data models
+│   ├── services/       # Business logic
+│   └── index.ts        # Application entry point
+├── tests/              # Test files
+├── package.json        # Project dependencies
+└── tsconfig.json      # TypeScript configuration
+```
+
+## Setup Instructions
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd backend
+   ```
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-## Development
+3. **Environment Configuration**
+   Create a `.env` file in the root directory with the following variables:
+   ```env
+   PORT=3000
+   NODE_ENV=development
+   POSTGRES_HOST=localhost
+   POSTGRES_PORT=5432
+   POSTGRES_DB=product_metadata
+   POSTGRES_USER=your_username
+   POSTGRES_PASSWORD=your_password
+   ```
 
-Start the development server:
+4. **Database Setup**
+   - Create a PostgreSQL database named `product_metadata`
+   - The database schema will be automatically created when you run the application
+
+## Running the Application
+
+### Development Mode
 ```bash
 npm run dev
 ```
 
-The server will be available at http://localhost:3000
-API documentation will be available at http://localhost:3000/documentation
-
-## Testing
-
-Run the test suite:
+### Production Mode
 ```bash
-npm test
+npm run build
+npm start
 ```
 
-Run tests in watch mode:
+### Using Docker
 ```bash
-npm run test:watch
-```
-
-## Docker
-
-Build and run using Docker Compose:
-```bash
+# Build and start the containers
 docker-compose up --build
+
+# To run in detached mode
+docker-compose up -d
+```
+
+## Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
 ## API Endpoints
 
-### Create Product
-- **POST** `/products`
-- Body:
-  ```json
-  {
-    "name": "Product Name",
-    "description": "Product Description",
-    "price": 99.99,
-    "tags": ["tag1", "tag2"]
-  }
-  ```
+### Products
 
-### Get Product
-- **GET** `/products/:id`
+- `GET /api/products` - List all products
+- `GET /api/products/:id` - Get a specific product
+- `POST /api/products` - Create a new product
+- `PUT /api/products/:id` - Update a product
+- `DELETE /api/products/:id` - Delete a product
 
-### Update Product
-- **PUT** `/products/:id`
-- Body: Same as create, but all fields are optional
+### Example Product Object
+```json
+{
+  "name": "Product Name",
+  "description": "Product Description",
+  "price": 99.99,
+  "tags": ["tag1", "tag2"]
+}
+```
 
-### Delete Product
-- **DELETE** `/products/:id`
+## Development
 
-### List Products
-- **GET** `/products`
+### Code Style
+The project uses ESLint and Prettier for code formatting. To check your code:
+```bash
+npm run lint
+```
 
-## Data Model
+### TypeScript
+The project is written in TypeScript. To check types:
+```bash
+npm run type-check
+```
 
-### Product
-- `id`: UUID (auto-generated)
-- `name`: string (max 255, required)
-- `description`: string (max 2000, required)
-- `tags`: string[]
-- `price`: number (positive, required)
-- `createdAt`: timestamp
-- `updatedAt`: timestamp
+## Troubleshooting
 
-## Error Handling
+### Common Issues
 
-The API returns appropriate HTTP status codes and error messages:
-- 400: Bad Request (validation errors)
-- 404: Not Found
-- 500: Internal Server Error
+1. **Database Connection Issues**
+   - Ensure PostgreSQL is running
+   - Verify database credentials in `.env`
+   - Check if the database exists
+
+2. **Port Conflicts**
+   - Change the PORT in `.env` if 3000 is already in use
+
+3. **TypeScript Compilation Errors**
+   - Run `npm run type-check` to see detailed errors
+   - Ensure all dependencies are installed
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request 
+1. Create a new branch for your feature
+2. Make your changes
+3. Write or update tests
+4. Submit a pull request
+
+## License
+
+MIT 
