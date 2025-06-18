@@ -18,4 +18,4 @@ COPY src/ ./src/
 EXPOSE 8000
 
 # Command to run the application
-CMD ["python", "src/tag_suggestor.py"] 
+CMD ["uvicorn", "src.service:app", "--host", "0.0.0.0", "--port", "8000"] 

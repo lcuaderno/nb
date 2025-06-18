@@ -1,14 +1,24 @@
 # Tag Suggestion Service
 
-A service that suggests product tags based on product name and description. Supports both a basic keyword-matching method and a local LLM (Ollama) method.
+A service that suggests product tags based on product name and description. Supports three methods: basic keyword-matching, semantic matching (sentence-transformers), and a local LLM (Ollama) method.
 
 ## Features
 
-- **Simple method:** Uses keyword and tag matching (no extra dependencies)
-- **LLM method:** Uses a local LLM (e.g., Phi, Llama2, or Mistral via Ollama)
+- **Simple method:** Uses keyword and tag matching (no extra dependencies, see `src/simple.py`)
+- **Semantic method:** Uses sentence-transformers (all-MiniLM-L6-v2) for semantic similarity, see `src/semantic.py`
+- **LLM method:** Uses a local LLM (e.g., Phi, Llama2, or Mistral via Ollama, see `src/llm.py`)
 - Modular: Easily switch between methods via a query parameter
 - FastAPI-based REST API
 - Returns up to 3 most relevant tags
+
+## Modular Structure
+
+- The service is now modular: each tag suggestion method is implemented in its own module.
+    - `src/simple.py`: Simple keyword/tag-based suggestion logic
+    - `src/semantic.py`: Semantic similarity using sentence-transformers
+    - `src/llm.py`: LLM-based suggestion logic (calls Ollama)
+- The FastAPI app in `src/service.py` routes requests to the appropriate module based on the `method` query parameter.
+- You can add more methods by creating new modules and updating `service.py`.
 
 ## Setup
 
@@ -68,7 +78,7 @@ ollama pull mistral  # Larger, more capable
 
 7. Start the tag suggestor service:
 ```bash
-python src/tag_suggestor.py
+uvicorn src.service:app --host 0.0.0.0 --port 8000
 ```
 
 ## Running the Service
@@ -89,6 +99,11 @@ docker exec -it tag-suggestor-ollama-1 ollama pull phi
 ```bash
 # Test the simple method
 curl -X POST 'http://localhost:8000/suggest-tags' \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Organic Cotton T-Shirt", "description": "Eco-friendly t-shirt made from 100% organic cotton"}'
+
+# Test the semantic method
+curl -X POST 'http://localhost:8000/suggest-tags?method=semantic' \
   -H "Content-Type: application/json" \
   -d '{"name": "Organic Cotton T-Shirt", "description": "Eco-friendly t-shirt made from 100% organic cotton"}'
 
@@ -116,13 +131,18 @@ curl http://localhost:11434/api/tags
 
 3. In a new terminal, start the tag suggestor:
 ```bash
-python src/tag_suggestor.py
+uvicorn src.service:app --host 0.0.0.0 --port 8000
 ```
 
 4. Test the service:
 ```bash
 # Test the simple method
 curl -X POST 'http://localhost:8000/suggest-tags' \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Organic Cotton T-Shirt", "description": "Eco-friendly t-shirt made from 100% organic cotton"}'
+
+# Test the semantic method
+curl -X POST 'http://localhost:8000/suggest-tags?method=semantic' \
   -H "Content-Type: application/json" \
   -d '{"name": "Organic Cotton T-Shirt", "description": "Eco-friendly t-shirt made from 100% organic cotton"}'
 
@@ -180,6 +200,7 @@ ollama prune
 
 **Query Parameter:**
 - `method=simple` (default): Use the simple keyword-based method
+- `method=semantic`: Use the sentence-transformers semantic method
 - `method=llm`: Use the local LLM via Ollama
 
 **Request Body:**
@@ -206,20 +227,28 @@ ollama prune
    - Verify Ollama is accessible: `curl http://localhost:11434/api/tags`
    - Check if the model is downloaded: `ollama list`
 
-2. **Memory Issues:**
+2. **Semantic Method ImportError:**
+   - If you see an error about `cached_download` from `huggingface_hub`, ensure you have `huggingface_hub>=0.10,<0.17` in your `requirements.txt`.
+   - Rebuild your Docker image after updating requirements.
+
+3. **Memory Issues:**
    - If you get memory errors, try using a smaller model like `phi`
    - Adjust Docker memory limits if using Docker
 
-3. **Model Issues:**
+4. **Model Issues:**
    - Try pulling the model again: `ollama pull phi`
    - Check model compatibility: `ollama show phi`
    - Make sure you're using a model that's actually downloaded
 
-4. **Port Conflicts:**
+5. **Port Conflicts:**
    - Check if port 11434 is already in use: `lsof -i :11434`
    - Check if port 8000 is already in use: `lsof -i :8000`
    - Stop any conflicting services
 
 ## Modularity
 - The service is modular: you can add more methods or swap out the LLM or matching logic easily.
-- See `src/tag_suggestor.py` and `src/llm_suggestor.py` for details. 
+- See `src/simple.py`, `src/semantic.py`, and `src/llm.py` for details.
+
+## License
+
+MIT 

@@ -1,6 +1,8 @@
 import requests
 from typing import List
 import os
+import json
+import re
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
 OLLAMA_URL = f"http://{OLLAMA_HOST}:11434/api/generate"
@@ -29,8 +31,6 @@ def suggest_tags_llm(name: str, description: str) -> List[str]:
     result = response.json()
     # The LLM response is in result['response']
     # Try to extract a JSON array of tags
-    import json
-    import re
     text = result.get('response', '').strip()
     # Try to find a JSON array in the response
     match = re.search(r'\[.*?\]', text, re.DOTALL)

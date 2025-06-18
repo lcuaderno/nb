@@ -1,12 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
-from typing import List
 import re
-from llm_suggestor import suggest_tags_llm
+from typing import List
 
-app = FastAPI(title="Tag Suggestion Service")
-
-# Common product tags for matching
 COMMON_TAGS = [
     "electronics", "clothing", "home", "kitchen", "beauty", "sports", "books",
     "toys", "garden", "office", "automotive", "health", "food", "beverages",
@@ -15,7 +9,6 @@ COMMON_TAGS = [
     "modern", "classic", "luxury", "casual"
 ]
 
-# Tag keywords for matching
 TAG_KEYWORDS = {
     "electronics": ["electronic", "digital", "tech", "computer", "phone", "laptop", "gadget"],
     "clothing": ["clothes", "shirt", "dress", "jacket", "pants", "shoes", "fashion"],
@@ -50,56 +43,23 @@ TAG_KEYWORDS = {
     "casual": ["casual", "everyday", "informal", "comfortable", "relaxed"]
 }
 
-class TagRequest(BaseModel):
-    name: str
-    description: str
-
-class TagResponse(BaseModel):
-    suggestedTags: List[str]
-
 def calculate_tag_score(text: str, tag: str) -> float:
-    """Calculate a score for how well a tag matches the text."""
     text = text.lower()
     score = 0.0
-    
-    # Direct tag match
     if tag.lower() in text:
         score += 2.0
-    
-    # Keyword matches
     keywords = TAG_KEYWORDS.get(tag, [])
     for keyword in keywords:
         if keyword.lower() in text:
             score += 1.0
-    
-    # Word boundary matches
     pattern = r'\b' + re.escape(tag.lower()) + r'\b'
     if re.search(pattern, text):
         score += 1.5
-    
     return score
 
-@app.post("/suggest-tags", response_model=TagResponse)
-async def suggest_tags(request: TagRequest, method: str = Query("simple", enum=["simple", "llm"])):
-    try:
-        if method == "llm":
-            tags = suggest_tags_llm(request.name, request.description)
-            return TagResponse(suggestedTags=tags)
-        # Default: simple method
-        text = f"{request.name} {request.description}"
-        
-        # Calculate scores for all tags
-        tag_scores = [(tag, calculate_tag_score(text, tag)) for tag in COMMON_TAGS]
-        
-        # Sort by score and get top 3
-        tag_scores.sort(key=lambda x: x[1], reverse=True)
-        suggested_tags = [tag for tag, score in tag_scores[:3] if score > 0]
-        
-        return TagResponse(suggestedTags=suggested_tags)
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+def suggest_tags_simple(name: str, description: str) -> List[str]:
+    text = f"{name} {description}"
+    tag_scores = [(tag, calculate_tag_score(text, tag)) for tag in COMMON_TAGS]
+    tag_scores.sort(key=lambda x: x[1], reverse=True)
+    suggested_tags = [tag for tag, score in tag_scores[:3] if score > 0]
+    return suggested_tags 
