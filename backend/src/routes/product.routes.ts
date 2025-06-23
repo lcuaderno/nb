@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../controllers/product.controller';
+import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct, recoverProduct } from '../controllers/product.controller';
 
 const router = Router();
 
@@ -148,5 +148,26 @@ router.put('/:id', updateProduct);
  *         description: Product not found
  */
 router.delete('/:id', deleteProduct);
+
+/**
+ * @swagger
+ * /api/products/{id}/recover:
+ *   patch:
+ *     summary: Recover a soft-deleted product
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: Product recovered
+ *       404:
+ *         description: Product not found or not deleted
+ */
+router.patch('/:id/recover', recoverProduct);
 
 export const productRoutes = router; 

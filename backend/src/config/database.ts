@@ -38,11 +38,24 @@ export const initializeDatabase = async () => {
             price DECIMAL(10,2) NOT NULL,
             tags TEXT[] DEFAULT '{}',
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
           );
         `);
         console.log('Products table created successfully');
       } else {
+        // Add deleted_at column if it doesn't exist
+        await client.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns 
+              WHERE table_name='products' AND column_name='deleted_at'
+            ) THEN
+              ALTER TABLE products ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+            END IF;
+          END$$;
+        `);
         console.log('Products table already exists');
       }
       

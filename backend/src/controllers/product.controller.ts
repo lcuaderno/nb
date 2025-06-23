@@ -82,4 +82,21 @@ export const deleteProduct = async (req: Request, res: Response) => {
       res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
     }
   }
+};
+
+export const recoverProduct = async (req: Request, res: Response) => {
+  try {
+    const product = await productService.recover(req.params.id);
+    res.status(200).json(product);
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      res.status(404).json({ message: error.message, error: 'Not Found', statusCode: 404 });
+    } else if (error instanceof ValidationError) {
+      res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
+    } else if (error instanceof DatabaseError) {
+      res.status(503).json({ message: error.message, error: 'Internal Server Error' });
+    } else {
+      res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
+    }
+  }
 }; 

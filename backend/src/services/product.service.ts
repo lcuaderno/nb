@@ -46,7 +46,7 @@ export class ProductService {
     }
     try {
       const result = await pool.query(
-        'SELECT * FROM products WHERE id = $1',
+        'SELECT * FROM products WHERE id = $1 AND deleted_at IS NULL',
         [id]
       );
       if (result.rows.length === 0) {
@@ -93,7 +93,7 @@ export class ProductService {
     values.push(id);
     try {
       const result = await pool.query(
-        `UPDATE products SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`,
+        `UPDATE products SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} AND deleted_at IS NULL RETURNING *`,
         values
       );
       if (result.rows.length === 0) {
@@ -106,14 +106,14 @@ export class ProductService {
     }
   }
 
-  // Delete a product
+  // Delete a product (soft delete)
   async delete(id: string): Promise<void> {
     if (!this.isValidUUID(id)) {
       throw new ValidationError('Invalid product ID');
     }
     try {
       const result = await pool.query(
-        'DELETE FROM products WHERE id = $1 RETURNING id',
+        'UPDATE products SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id',
         [id]
       );
       if (result.rows.length === 0) {
@@ -125,13 +125,34 @@ export class ProductService {
     }
   }
 
-  // List all products
+  // List all products (excluding soft-deleted)
   async list(): Promise<Product[]> {
     try {
-      const result = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
+      const result = await pool.query('SELECT * FROM products WHERE deleted_at IS NULL ORDER BY created_at DESC');
       return result.rows.map(this.rowToProduct);
     } catch (err: any) {
       throw new DatabaseError('Failed to list products: ' + err.message);
+    }
+  }
+
+  // Recover a soft-deleted product
+  async recover(id: string): Promise<Product> {
+    if (!this.isValidUUID(id)) {
+      throw new ValidationError('Invalid product ID');
+    }
+    try {
+      // Only recover if currently soft-deleted
+      const result = await pool.query(
+        `UPDATE products SET deleted_at = NULL, updated_at = NOW() WHERE id = $1 AND deleted_at IS NOT NULL RETURNING *`,
+        [id]
+      );
+      if (result.rows.length === 0) {
+        throw new NotFoundError('Product not found or not deleted');
+      }
+      return this.rowToProduct(result.rows[0]);
+    } catch (err: any) {
+      if (err instanceof NotFoundError) throw err;
+      throw new DatabaseError('Failed to recover product: ' + err.message);
     }
   }
 
@@ -144,7 +165,8 @@ export class ProductService {
       price: Number(row.price),
       tags: row.tags || [],
       createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at)
+      updatedAt: new Date(row.updated_at),
+      deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
     };
   }
 
