@@ -9,11 +9,30 @@ OLLAMA_URL = f"http://{OLLAMA_HOST}:11434/api/generate"
 OLLAMA_MODEL = "phi"  #llama3 # Changed to phi which is smaller and requires less memory
 
 PROMPT_TEMPLATE = (
-    "You are an assistant that suggests up to 3 relevant product tags for a product. "
-    "Given the product name and description, return a JSON array of up to 3 short tags (single words or short phrases, no explanations).\n"
+    "You are a product tag generator. Given a product name and description, return ONLY a JSON array of exactly 3 relevant tags.\n"
+    "Rules:\n"
+    "- Return ONLY the JSON array, no explanations, no text before or after, no numbers, no bullet points.\n"
+    "- Use short, relevant tags (1-3 words max).\n"
+    "- Make tags specific to the product.\n"
+    "- Format: [\"tag1\", \"tag2\", \"tag3\"]\n"
+    "- Do NOT return anything except the JSON array.\n"
+    "\n"
+    "Example (GOOD):\n"
+    "Product name: Vintage Television\n"
+    "Product description: An old black and white TV from the 1950s\n"
+    "Output: [\"antique\", \"classic\", \"retro\"]\n"
+    "\n"
+    "Example (BAD):\n"
+    "Product name: Vintage Television\n"
+    "Product description: An old black and white TV from the 1950s\n"
+    "Output: Here are three relevant product tags for the given product:\n"
+    "1. \"TV - Old\"\n"
+    "2. \"Antique - Vintage\"\n"
+    "3. \"Black and White\"\n"
+    "\n"
     "Product name: {name}\n"
     "Product description: {description}\n"
-    "Tags:"
+    "Output:"
 )
 
 def suggest_tags_llm(name: str, description: str) -> List[str]:
@@ -29,8 +48,6 @@ def suggest_tags_llm(name: str, description: str) -> List[str]:
     )
     response.raise_for_status()
     result = response.json()
-    # The LLM response is in result['response']
-    # Try to extract a JSON array of tags
     text = result.get('response', '').strip()
     # Try to find a JSON array in the response
     match = re.search(r'\[.*?\]', text, re.DOTALL)
@@ -42,5 +59,5 @@ def suggest_tags_llm(name: str, description: str) -> List[str]:
         except Exception:
             pass
     # Fallback: split by commas or newlines
-    tags = [t.strip(' ",') for t in re.split(r'[\n,]', text) if t.strip()]
+    tags = [t.strip(' "') for t in re.split(r'[\n,]', text) if t.strip()]
     return tags[:3] 
