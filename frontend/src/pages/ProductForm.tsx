@@ -23,6 +23,8 @@ export default function ProductForm() {
   const [errors, setErrors] = useState<ProductFormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [degraded, setDegraded] = useState<boolean>(false);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
 
   const { data: product, error: fetchError, isLoading: isProductLoading } = useQuery<Product>({
     queryKey: ['product', id],
@@ -162,6 +164,26 @@ export default function ProductForm() {
     });
   };
 
+  const handleSuggestTags = async () => {
+    setSuggestLoading(true);
+    setSuggestError(null);
+    try {
+      const response = await axios.post('http://localhost:8000/suggest-tags?method=llm', {
+        name: formData.name,
+        description: formData.description,
+      });
+      const suggestedTags: string[] = response.data.suggestedTags || [];
+      setFormData((prev) => ({
+        ...prev,
+        tags: Array.from(new Set([...prev.tags, ...suggestedTags]))
+      }));
+    } catch (err: any) {
+      setSuggestError(err.response?.data?.message || 'Failed to suggest tags.');
+    } finally {
+      setSuggestLoading(false);
+    }
+  };
+
   if (isProductLoading) return <div className="text-center py-4">Loading...</div>;
   if (degraded) return <div className="text-center py-4 text-yellow-600 bg-yellow-100">Service is temporarily unavailable. Please try again later.</div>;
   if (apiError) return <div className="text-center py-4 text-red-600">Error: {apiError}</div>;
@@ -266,7 +288,31 @@ export default function ProductForm() {
             >
               Add
             </button>
+            <button
+              type="button"
+              onClick={handleSuggestTags}
+              className={`btn ${
+                suggestLoading ||
+                !formData.name.trim() ||
+                !formData.description.trim()
+                  ? 'btn-disabled opacity-50 cursor-not-allowed'
+                  : 'btn-secondary hover:bg-gray-600'
+              }`}
+              disabled={
+                suggestLoading ||
+                !formData.name.trim() ||
+                !formData.description.trim()
+              }
+              title={
+                !formData.name.trim() || !formData.description.trim()
+                  ? 'Please fill in both name and description to suggest tags'
+                  : 'Get AI-suggested tags based on your product details'
+              }
+            >
+              {suggestLoading ? 'Suggesting...' : 'Suggest Tags'}
+            </button>
           </div>
+          {suggestError && <div className="error-message">{suggestError}</div>}
           <div className="mt-2 flex flex-wrap gap-2">
             {formData.tags.map((tag) => (
               <span

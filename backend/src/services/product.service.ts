@@ -162,20 +162,21 @@ export class ProductService {
         query += ` LIMIT $${paramIdx}`;
         values.push(options.limit + 1); // Fetch one extra to check for next page
       }
-      // Debug logging
-      console.log('[ProductService.list] SQL:', query);
-      console.log('[ProductService.list] Values:', values);
+      
       const result = await pool.query(query, values);
-      console.log('[ProductService.list] Result count:', result.rows.length);
+      
       const limit = options?.limit || result.rows.length;
       const products = result.rows.slice(0, limit).map(this.rowToProduct);
+      
       let nextCursor = null;
       let hasMore = false;
+      
       if (options?.limit && result.rows.length > limit) {
         const last = result.rows[limit];
         nextCursor = { createdAt: last.created_at };
         hasMore = true;
       }
+      
       return { products, nextCursor, hasMore };
     } catch (err: any) {
       throw new DatabaseError('Failed to list products: ' + err.message);
