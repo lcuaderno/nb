@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 // Configure axios defaults
@@ -18,19 +18,32 @@ export default function ProductList() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [degraded, setDegraded] = useState<boolean>(false);
 
-  const { data: products, isLoading, error: queryError } = useQuery<Product[]>({
+  const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['products'],
     queryFn: async () => {
       try {
         const response = await axios.get('/api/products');
+        setDegraded(false);
         return response.data;
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError('Failed to fetch products. Please try again later.');
+      } catch (err: any) {
+        if (err.response) {
+          if (err.response.status === 503) {
+            setDegraded(true);
+            setError(null);
+          } else {
+            setError(err.response.data?.message || 'Failed to fetch products.');
+          }
+        } else if (err.request) {
+          setError('Network error. Please check your connection.');
+        } else {
+          setError('An unexpected error occurred.');
+        }
         throw err;
       }
-    }
+    },
+    retry: false,
   });
 
   const deleteMutation = useMutation({
@@ -40,11 +53,28 @@ export default function ProductList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setDeleteId(null);
+    },
+    onError: (err: any) => {
+      if (err.response) {
+        setError(err.response.data?.message || 'Failed to delete product.');
+      } else if (err.request) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('An unexpected error occurred.');
+      }
     }
   });
 
+  useEffect(() => {
+    // Clear error if degraded is set (degraded takes precedence)
+    if (degraded) {
+      setError(null);
+    }
+  }, [degraded]);
+
   if (isLoading) return <div className="text-center py-4">Loading...</div>;
-  if (error || queryError) return <div className="text-center py-4 text-red-600">Error: {error || 'Failed to load products'}</div>;
+  if (degraded) return <div className="text-center py-4 text-yellow-600 bg-yellow-100">Service is temporarily unavailable. Please try again later.</div>;
+  if (error) return <div className="text-center py-4 text-red-600">Error: {error}</div>;
 
   return (
     <div>

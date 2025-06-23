@@ -19,14 +19,36 @@ export default function ProductForm() {
   const [priceInput, setPriceInput] = useState('0');
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<ProductFormErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [degraded, setDegraded] = useState<boolean>(false);
 
-  const { data: product } = useQuery<Product>({
+  const { data: product, error: fetchError, isLoading: isProductLoading } = useQuery<Product>({
     queryKey: ['product', id],
     queryFn: async () => {
-      const response = await axios.get(`/api/products/${id}`);
-      return response.data;
+      try {
+        const response = await axios.get(`/api/products/${id}`);
+        setDegraded(false);
+        return response.data;
+      } catch (err: any) {
+        if (err.response) {
+          if (err.response.status === 404) {
+            setApiError('Product not found.');
+          } else if (err.response.status === 503 ) {
+            setDegraded(true);
+            setApiError(null);
+          } else {
+            setApiError(err.response.data?.message || 'Failed to fetch product.');
+          }
+        } else if (err.request) {
+          setApiError('Network error. Please check your connection.');
+        } else {
+          setApiError('An unexpected error occurred.');
+        }
+        throw err;
+      }
     },
     enabled: isEditing,
+    retry: false,
   });
 
   useEffect(() => {
@@ -41,6 +63,12 @@ export default function ProductForm() {
     }
   }, [product]);
 
+  useEffect(() => {
+    if (degraded) {
+      setApiError(null);
+    }
+  }, [degraded]);
+
   const createMutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
       const response = await axios.post('/api/products', data);
@@ -50,6 +78,15 @@ export default function ProductForm() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       navigate('/products');
     },
+    onError: (err: any) => {
+      if (err.response) {
+        setApiError(err.response.data?.message || 'Failed to create product.');
+      } else if (err.request) {
+        setApiError('Network error. Please check your connection.');
+      } else {
+        setApiError('An unexpected error occurred.');
+      }
+    }
   });
 
   const updateMutation = useMutation({
@@ -61,6 +98,15 @@ export default function ProductForm() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       navigate('/products');
     },
+    onError: (err: any) => {
+      if (err.response) {
+        setApiError(err.response.data?.message || 'Failed to update product.');
+      } else if (err.request) {
+        setApiError('Network error. Please check your connection.');
+      } else {
+        setApiError('An unexpected error occurred.');
+      }
+    }
   });
 
   const validateForm = () => {
@@ -84,11 +130,10 @@ export default function ProductForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
+    setApiError(null);
     if (!validateForm()) {
       return;
     }
-
     if (isEditing) {
       updateMutation.mutate(formData);
     } else {
@@ -112,6 +157,10 @@ export default function ProductForm() {
       tags: formData.tags.filter((tag) => tag !== tagToRemove),
     });
   };
+
+  if (isProductLoading) return <div className="text-center py-4">Loading...</div>;
+  if (degraded) return <div className="text-center py-4 text-yellow-600 bg-yellow-100">Service is temporarily unavailable. Please try again later.</div>;
+  if (apiError) return <div className="text-center py-4 text-red-600">Error: {apiError}</div>;
 
   return (
     <div className="max-w-2xl mx-auto">

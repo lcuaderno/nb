@@ -11,7 +11,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
     res.json(products);
   } catch (error) {
     if (error instanceof DatabaseError) {
-      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+      res.status(503).json({ message: error.message, error: 'Internal Server Error' });
     } else {
       res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
     }
@@ -28,7 +28,7 @@ export const getProductById = async (req: Request, res: Response) => {
     } else if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
     } else if (error instanceof DatabaseError) {
-      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+      res.status(503).json({ message: error.message, error: 'Internal Server Error' });
     } else {
       res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
     }
@@ -43,7 +43,7 @@ export const createProduct = async (req: Request, res: Response) => {
     if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
     } else if (error instanceof DatabaseError) {
-      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+      res.status(503).json({ message: error.message, error: 'Internal Server Error' });
     } else {
       res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
     }
@@ -60,7 +60,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     } else if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
     } else if (error instanceof DatabaseError) {
-      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+      res.status(503).json({ message: error.message, error: 'Internal Server Error' });
     } else {
       res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
     }
@@ -77,7 +77,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     } else if (error instanceof ValidationError) {
       res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
     } else if (error instanceof DatabaseError) {
-      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+      res.status(503).json({ message: error.message, error: 'Internal Server Error' });
     } else {
       res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
     }
