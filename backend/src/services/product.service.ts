@@ -135,11 +135,44 @@ export class ProductService {
     }
   }
 
-  // List all products (excluding soft-deleted)
-  async list(): Promise<Product[]> {
+  // List products with optional cursor-based pagination
+  async list(options?: { limit?: number; cursor?: { createdAt: string } }): Promise<{ products: Product[]; nextCursor: { createdAt: string } | null; hasMore: boolean }> {
     try {
-      const result = await pool.query('SELECT * FROM products WHERE deleted_at IS NULL ORDER BY created_at DESC');
-      return result.rows.map(this.rowToProduct);
+      let query = 'SELECT * FROM products WHERE deleted_at IS NULL';
+      const values: any[] = [];
+      
+      if (options?.cursor) {
+        query += ' AND created_at < $1::timestamptz';
+        values.push(options.cursor.createdAt);
+      }
+      
+      query += ' ORDER BY created_at DESC';
+      
+      if (options?.limit) {
+        query += ' LIMIT $' + (values.length + 1);
+        values.push(options.limit + 1); // Fetch one extra to check for next page
+      }
+      
+      // Debug logging
+      console.log('[ProductService.list] SQL:', query);
+      console.log('[ProductService.list] Values:', values);
+      
+      const result = await pool.query(query, values);
+      console.log('[ProductService.list] Result count:', result.rows.length);
+      
+      const limit = options?.limit || result.rows.length;
+      const products = result.rows.slice(0, limit).map(this.rowToProduct);
+      
+      let nextCursor = null;
+      let hasMore = false;
+      
+      if (options?.limit && result.rows.length > limit) {
+        const last = result.rows[limit];
+        nextCursor = { createdAt: last.created_at };
+        hasMore = true;
+      }
+      
+      return { products, nextCursor, hasMore };
     } catch (err: any) {
       throw new DatabaseError('Failed to list products: ' + err.message);
     }

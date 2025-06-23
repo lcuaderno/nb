@@ -39,14 +39,14 @@ export const initializeDatabase = async () => {
             tags TEXT[] DEFAULT '{}',
             category VARCHAR(255),
             brand VARCHAR(255),
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP(3),
+            updated_at TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP(3),
             deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
           );
         `);
         console.log('Products table created successfully');
       } else {
-        // Add deleted_at column if it doesn't exist
+        // Add/alter columns if needed
         await client.query(`
           DO $$
           BEGIN
@@ -68,6 +68,13 @@ export const initializeDatabase = async () => {
             ) THEN
               ALTER TABLE products ADD COLUMN brand VARCHAR(255);
             END IF;
+            -- Alter created_at and updated_at to TIMESTAMP(3) WITH TIME ZONE
+            BEGIN
+              ALTER TABLE products ALTER COLUMN created_at TYPE TIMESTAMP(3) WITH TIME ZONE, ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP(3);
+            EXCEPTION WHEN others THEN NULL; END;
+            BEGIN
+              ALTER TABLE products ALTER COLUMN updated_at TYPE TIMESTAMP(3) WITH TIME ZONE, ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP(3);
+            EXCEPTION WHEN others THEN NULL; END;
           END$$;
         `);
         console.log('Products table already exists');

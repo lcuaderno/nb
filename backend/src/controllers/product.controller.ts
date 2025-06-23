@@ -7,8 +7,15 @@ const productService = new ProductService();
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
-    const products = await productService.list();
-    res.json(products);
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+    let cursor: { createdAt: string } | undefined = undefined;
+    if (req.query.cursorCreatedAt) {
+      cursor = {
+        createdAt: req.query.cursorCreatedAt as string,
+      };
+    }
+    const result = await productService.list({ limit, cursor });
+    res.json(result);
   } catch (error) {
     if (error instanceof DatabaseError) {
       res.status(503).json({ message: error.message, error: 'Internal Server Error' });

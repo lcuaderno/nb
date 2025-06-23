@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 // Configure axios defaults
@@ -21,32 +21,70 @@ export default function ProductList() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [degraded, setDegraded] = useState<boolean>(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [nextCursor, setNextCursor] = useState<{ createdAt: string } | null>(null);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const isInitialLoad = useRef(true);
+  const [pageSize, setPageSize] = useState<number>(10);
 
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['products'],
-    queryFn: async () => {
-      try {
-        const response = await axios.get('/api/products');
-        setDegraded(false);
-        return response.data;
-      } catch (err: any) {
-        if (err.response) {
-          if (err.response.status === 503) {
-            setDegraded(true);
-            setError(null);
-          } else {
-            setError(err.response.data?.message || 'Failed to fetch products.');
-          }
-        } else if (err.request) {
-          setError('Network error. Please check your connection.');
-        } else {
-          setError('An unexpected error occurred.');
-        }
-        throw err;
+  const fetchProducts = async (cursor?: { createdAt: string }, customLimit?: number) => {
+    try {
+      setIsLoading(true);
+      const params: any = { limit: customLimit ?? pageSize };
+      if (cursor) {
+        params.cursorCreatedAt = cursor.createdAt;
       }
-    },
-    retry: false,
-  });
+      const response = await axios.get('/api/products', { params });
+      setDegraded(false);
+      const { products: newProducts, nextCursor: newNextCursor, hasMore: newHasMore } = response.data;
+      setProducts((prev) => {
+        if (cursor) {
+          return [...prev, ...newProducts];
+        } else {
+          return newProducts;
+        }
+      });
+      setNextCursor(newNextCursor);
+      setHasMore(newHasMore);
+      setIsLoading(false);
+    } catch (err: any) {
+      setIsLoading(false);
+      if (err.response) {
+        if (err.response.status === 503) {
+          setDegraded(true);
+          setError(null);
+        } else {
+          setError(err.response.data?.message || 'Failed to fetch products.');
+        }
+      } else if (err.request) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('An unexpected error occurred.');
+      }
+      throw err;
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts(undefined, pageSize);
+    // eslint-disable-next-line
+  }, [pageSize]);
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchProducts(nextCursor);
+    }
+  };
+
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = parseInt(e.target.value, 10);
+    setPageSize(newSize);
+    setProducts([]);
+    setNextCursor(null);
+    setHasMore(true);
+    isInitialLoad.current = true;
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -74,7 +112,10 @@ export default function ProductList() {
     }
   }, [degraded]);
 
-  if (isLoading) return <div className="text-center py-4">Loading...</div>;
+  if (isLoading && isInitialLoad.current) {
+    isInitialLoad.current = false;
+    return <div className="text-center py-4">Loading...</div>;
+  }
   if (degraded) return <div className="text-center py-4 text-yellow-600 bg-yellow-100">Service is temporarily unavailable. Please try again later.</div>;
   if (error) return <div className="text-center py-4 text-red-600">Error: {error}</div>;
 
@@ -84,7 +125,19 @@ export default function ProductList() {
         <div className="sm:flex-auto">
           <h1 className="text-xl font-semibold text-gray-900">Products</h1>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex items-center gap-4">
+          <label htmlFor="page-size" className="text-sm text-gray-700">Page size:</label>
+          <select
+            id="page-size"
+            value={pageSize}
+            onChange={handlePageSizeChange}
+            className="input w-auto px-2 py-1 text-sm"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
           <Link
             to="/products/new"
             className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
@@ -155,6 +208,20 @@ export default function ProductList() {
           </div>
         </div>
       </div>
+
+      {hasMore && !isLoading && (
+        <div className="flex justify-center my-4">
+          <button
+            onClick={handleLoadMore}
+            className="btn btn-primary"
+          >
+            Load More
+          </button>
+        </div>
+      )}
+      {isLoading && !isInitialLoad.current && (
+        <div className="text-center py-4">Loading more...</div>
+      )}
 
       {deleteId && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
