@@ -14,7 +14,9 @@ export const getAllProducts = async (req: Request, res: Response) => {
         createdAt: req.query.cursorCreatedAt as string,
       };
     }
-    const result = await productService.list({ limit, cursor });
+    const name = req.query.name ? String(req.query.name) : undefined;
+    const tag = req.query.tag ? String(req.query.tag) : undefined;
+    const result = await productService.list({ limit, cursor, name, tag });
     res.json(result);
   } catch (error) {
     if (error instanceof DatabaseError) {

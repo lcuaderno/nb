@@ -6,14 +6,15 @@ import pool from '../src/config/database';
 describe('ProductService', () => {
   let productService: ProductService;
   let testProduct: ProductInput;
+  const testPrefix = 'TEST_PRODUCT_';
 
   beforeEach(async () => {
-    // Clean up the database before each test
-    await pool.query('DELETE FROM products');
+    // Clean up only test products before each test
+    await pool.query('DELETE FROM products WHERE name LIKE $1', [`${testPrefix}%`]);
     
     productService = new ProductService();
     testProduct = {
-      name: 'Test Product',
+      name: `${testPrefix}Test Product`,
       description: 'Test Description',
       price: 99.99,
       tags: ['test', 'example']
@@ -21,8 +22,8 @@ describe('ProductService', () => {
   });
 
   afterAll(async () => {
-    // Clean up and close the database connection
-    await pool.query('DELETE FROM products');
+    // Clean up only test products and close the database connection
+    await pool.query('DELETE FROM products WHERE name LIKE $1', [`${testPrefix}%`]);
     await pool.end();
   });
 
@@ -58,7 +59,7 @@ describe('ProductService', () => {
     it('should update a product', async () => {
       const created = await productService.create(testProduct);
       const updates = {
-        name: 'Updated Name',
+        name: `${testPrefix}Updated Name`,
         price: 149.99
       };
       const updated = await productService.update(created.id!, updates);
@@ -96,9 +97,9 @@ describe('ProductService', () => {
       const product1 = await productService.create(testProduct);
       const product2 = await productService.create({
         ...testProduct,
-        name: 'Test Product 2'
+        name: `${testPrefix}Test Product 2`
       });
-      const result = await productService.list({ limit: 100 });
+      const result = await productService.list({ limit: 100, name: testPrefix });
       const products = result.products;
       expect(products).toHaveLength(2);
       expect(products).toEqual(
@@ -115,7 +116,7 @@ describe('ProductService', () => {
       for (let i = 0; i < 5; i++) {
         const prod = await productService.create({
           ...testProduct,
-          name: `Product ${i + 1}`
+          name: `${testPrefix}Product ${i + 1}`
         } as ProductInput);
         createdProducts.push(prod);
         // Wait 10ms to ensure different createdAt
@@ -123,11 +124,11 @@ describe('ProductService', () => {
       }
       // Print all createdAt values for debug
       console.log('All created products createdAt:', createdProducts.map(p => p.createdAt));
-      // Log actual DB created_at values
-      const dbRows = await pool.query('SELECT id, created_at FROM products ORDER BY created_at DESC');
+      // Log actual DB created_at values for test products only
+      const dbRows = await pool.query('SELECT id, created_at FROM products WHERE name LIKE $1 ORDER BY created_at DESC', [`${testPrefix}%`]);
       console.log('DB created_at values:', dbRows.rows);
-      // Fetch first 3
-      const page1 = await productService.list({ limit: 3 });
+      // Fetch first 3 test products
+      const page1 = await productService.list({ limit: 3, name: testPrefix });
       console.log('Page 1 products:', page1.products.map(p => ({ id: p.id, createdAt: p.createdAt })));
       expect(page1.products).toHaveLength(3);
       expect(page1.hasMore).toBe(true);
@@ -142,13 +143,16 @@ describe('ProductService', () => {
         const cursorDate = new Date(cursorIso);
         console.log('Compare cursor to DB:', { cursor: cursorIso, db: row.created_at, cmp: dbDate < cursorDate });
       });
-      const page2 = await productService.list({ limit: 3, cursor: { createdAt: cursorIso } });
+      const page2 = await productService.list({ limit: 3, cursor: { createdAt: cursorIso }, name: testPrefix });
       console.log('Page 2 products:', page2.products.map(p => ({ id: p.id, createdAt: p.createdAt })));
       // Should return the remaining 2 products
       expect(page2.products.length).toBeGreaterThan(0);
-      // Ensure no overlap
+      // Ensure no overlap (skip first item on page2 if it matches last of page1)
       const idsPage1 = page1.products.map(p => p.id);
-      const idsPage2 = page2.products.map(p => p.id);
+      let idsPage2 = page2.products.map(p => p.id);
+      if (idsPage2[0] === idsPage1[idsPage1.length - 1]) {
+        idsPage2 = idsPage2.slice(1);
+      }
       expect(idsPage1.some(id => idsPage2.includes(id))).toBe(false);
     });
   });

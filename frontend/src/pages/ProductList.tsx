@@ -27,13 +27,21 @@ export default function ProductList() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const isInitialLoad = useRef(true);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [searchName, setSearchName] = useState('');
+  const [searchTag, setSearchTag] = useState('');
 
-  const fetchProducts = async (cursor?: { createdAt: string }, customLimit?: number) => {
+  const fetchProducts = async (cursor?: { createdAt: string }, customLimit?: number, name?: string, tag?: string) => {
     try {
       setIsLoading(true);
       const params: any = { limit: customLimit ?? pageSize };
       if (cursor) {
         params.cursorCreatedAt = cursor.createdAt;
+      }
+      if (name) {
+        params.name = name;
+      }
+      if (tag) {
+        params.tag = tag;
       }
       const response = await axios.get('/api/products', { params });
       setDegraded(false);
@@ -67,13 +75,13 @@ export default function ProductList() {
   };
 
   useEffect(() => {
-    fetchProducts(undefined, pageSize);
+    fetchProducts(undefined, pageSize, searchName, searchTag);
     // eslint-disable-next-line
   }, [pageSize]);
 
   const handleLoadMore = () => {
     if (nextCursor) {
-      fetchProducts(nextCursor);
+      fetchProducts(nextCursor, undefined, searchName, searchTag);
     }
   };
 
@@ -84,6 +92,14 @@ export default function ProductList() {
     setNextCursor(null);
     setHasMore(true);
     isInitialLoad.current = true;
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setProducts([]);
+    setNextCursor(null);
+    setHasMore(true);
+    fetchProducts(undefined, pageSize, searchName, searchTag);
   };
 
   const deleteMutation = useMutation({
@@ -146,6 +162,25 @@ export default function ProductList() {
           </Link>
         </div>
       </div>
+
+      {/* Search form */}
+      <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-center mt-4 mb-2">
+        <input
+          type="text"
+          placeholder="Search by name"
+          value={searchName}
+          onChange={e => setSearchName(e.target.value)}
+          className="input px-2 py-1 text-sm"
+        />
+        <input
+          type="text"
+          placeholder="Search by tag"
+          value={searchTag}
+          onChange={e => setSearchTag(e.target.value)}
+          className="input px-2 py-1 text-sm"
+        />
+        <button type="submit" className="btn btn-primary px-4 py-1 text-sm">Search</button>
+      </form>
 
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
