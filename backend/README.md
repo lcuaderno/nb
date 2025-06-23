@@ -7,17 +7,23 @@ A TypeScript-based microservice for managing product metadata, built with Node.j
 - Full CRUD operations for products
 - Input validation using Zod
 - OpenAPI/Swagger documentation
-- SQLite database
+- PostgreSQL database with soft deletes
+- Cursor-based pagination
+- Search and filtering by name and tags
+- Comprehensive error handling with custom error classes
 - Docker support
 - Comprehensive test suite
+- Integration with tag suggestion service
 
 ## Tech Stack
 
 - Node.js + TypeScript
-- Fastify.js
-- SQLite
+- Express.js
+- PostgreSQL
 - Jest
 - Docker
+- Zod for validation
+- Winston for logging
 
 ## Prerequisites
 
@@ -30,8 +36,10 @@ A TypeScript-based microservice for managing product metadata, built with Node.j
 ```
 backend/
 ├── src/
-│   ├── config/         # Configuration files
+│   ├── config/         # Configuration files (database, swagger)
+│   ├── controllers/    # Request handlers
 │   ├── models/         # Data models
+│   ├── routes/         # API routes
 │   ├── services/       # Business logic
 │   └── index.ts        # Application entry point
 ├── tests/              # Test files
@@ -55,17 +63,17 @@ backend/
 3. **Environment Configuration**
    Create a `.env` file in the root directory with the following variables:
    ```env
-   PORT=3000
+   PORT=3010
    NODE_ENV=development
-   POSTGRES_HOST=localhost
-   POSTGRES_PORT=5432
-   POSTGRES_DB=product_metadata
-   POSTGRES_USER=your_username
-   POSTGRES_PASSWORD=your_password
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=products
+   DB_USER=postgres
+   DB_PASSWORD=postgres
    ```
 
 4. **Database Setup**
-   - Create a PostgreSQL database named `product_metadata`
+   - Create a PostgreSQL database named `products`
    - The database schema will be automatically created when you run the application
 
 ## Running the Application
@@ -107,11 +115,18 @@ npm run test:watch
 
 ### Products
 
-- `GET /api/products` - List all products
+- `GET /api/products` - List all products with pagination and filtering
 - `GET /api/products/:id` - Get a specific product
 - `POST /api/products` - Create a new product
 - `PUT /api/products/:id` - Update a product
-- `DELETE /api/products/:id` - Delete a product
+- `DELETE /api/products/:id` - Soft delete a product
+
+### Query Parameters for List Endpoint
+
+- `limit` (optional): Number of items per page (default: 10, max: 100)
+- `cursor` (optional): Cursor for pagination (timestamp in ISO format)
+- `name` (optional): Filter products by name (partial match)
+- `tag` (optional): Filter products by tag (exact match)
 
 ### Example Product Object
 ```json
@@ -119,9 +134,32 @@ npm run test:watch
   "name": "Product Name",
   "description": "Product Description",
   "price": 99.99,
+  "category": "Electronics",
+  "brand": "Brand Name",
   "tags": ["tag1", "tag2"]
 }
 ```
+
+### Pagination Response Format
+```json
+{
+  "data": [...],
+  "pagination": {
+    "hasNextPage": true,
+    "nextCursor": "2024-01-01T12:00:00.000Z"
+  }
+}
+```
+
+## Error Handling
+
+The service uses custom error classes for better error management:
+
+- `NotFoundError`: When a resource is not found
+- `ValidationError`: When input validation fails
+- `DatabaseError`: When database operations fail
+
+All errors return consistent JSON responses with appropriate HTTP status codes.
 
 ## Development
 
@@ -137,6 +175,10 @@ The project is written in TypeScript. To check types:
 npm run type-check
 ```
 
+## Integration with Tag Suggestion Service
+
+The backend integrates with the tag suggestion service for automatic tag generation. The frontend can call the tag suggestion service directly to get suggested tags based on product name and description.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -147,11 +189,15 @@ npm run type-check
    - Check if the database exists
 
 2. **Port Conflicts**
-   - Change the PORT in `.env` if 3000 is already in use
+   - Change the PORT in `.env` if 3010 is already in use
 
 3. **TypeScript Compilation Errors**
    - Run `npm run type-check` to see detailed errors
    - Ensure all dependencies are installed
+
+4. **Pagination Issues**
+   - Ensure cursor format is correct (ISO timestamp)
+   - Check that the cursor corresponds to an existing record
 
 ## Contributing
 

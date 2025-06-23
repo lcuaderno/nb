@@ -8,8 +8,9 @@ A service that suggests product tags based on product name and description. Supp
 - **Semantic method:** Uses sentence-transformers (all-MiniLM-L6-v2) for semantic similarity, see `src/semantic.py`
 - **LLM method:** Uses a local LLM (e.g., Phi, Llama2, or Mistral via Ollama, see `src/llm.py`)
 - Modular: Easily switch between methods via a query parameter
-- FastAPI-based REST API
+- FastAPI-based REST API with CORS support
 - Returns up to 3 most relevant tags
+- Integration with the full product management application stack
 
 ## Modular Structure
 
@@ -218,6 +219,36 @@ ollama prune
 }
 ```
 
+## Integration with Product Management System
+
+The tag suggestion service is integrated with the full product management application stack:
+
+- **Frontend Integration**: The React frontend calls this service to get AI-powered tag suggestions
+- **CORS Support**: Configured to accept requests from the frontend (http://localhost:3011)
+- **Docker Integration**: Runs as part of the complete application stack via docker-compose
+
+### Frontend Usage
+
+The frontend automatically calls this service when the "Suggest Tags" button is clicked in the product form:
+
+```javascript
+// Example frontend call
+const response = await fetch('http://localhost:8000/suggest-tags?method=llm', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name, description })
+});
+```
+
+## LLM Method Improvements
+
+The LLM method has been enhanced with:
+
+- **Improved Prompts**: Clear instructions with examples for better tag generation
+- **Response Cleaning**: Automatic cleaning of LLM responses to extract only valid tags
+- **Error Handling**: Graceful handling of LLM failures and malformed responses
+- **CORS Support**: Proper CORS configuration for frontend integration
+
 ## Troubleshooting
 
 1. **Ollama Connection Issues:**
@@ -244,6 +275,11 @@ ollama prune
    - Check if port 11434 is already in use: `lsof -i :11434`
    - Check if port 8000 is already in use: `lsof -i :8000`
    - Stop any conflicting services
+
+6. **CORS Issues:**
+   - Ensure the service is running with CORS enabled
+   - Check that the frontend is making requests from the correct origin
+   - Verify the CORS configuration in `src/service.py`
 
 ## Modularity
 - The service is modular: you can add more methods or swap out the LLM or matching logic easily.
