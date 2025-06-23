@@ -26,7 +26,7 @@ export default function ProductForm() {
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
 
-  const { data: product, error: fetchError, isLoading: isProductLoading } = useQuery<Product>({
+  const { data: product, isLoading: isProductLoading } = useQuery<Product>({
     queryKey: ['product', id],
     queryFn: async () => {
       try {
