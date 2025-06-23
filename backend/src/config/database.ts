@@ -63,4 +63,20 @@ export const initializeDatabase = async () => {
 // Initialize database before exporting
 initializeDatabase();
 
+// Listen for pool errors to prevent unhandled exceptions from crashing the app
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle database client:', err);
+  // Do not exit the process
+});
+
+// Function to check DB connectivity
+export const checkDatabaseConnection = async (): Promise<boolean> => {
+  try {
+    await pool.query('SELECT 1');
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
 export default pool; 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ProductService } from '../services/product.service';
+import { ProductService, NotFoundError, ValidationError, DatabaseError } from '../services/product.service';
 import { ProductSchema } from '../models/product';
 import { ZodError } from 'zod';
 
@@ -10,7 +10,11 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const products = await productService.list();
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
+    if (error instanceof DatabaseError) {
+      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+    } else {
+      res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
+    }
   }
 };
 
@@ -19,7 +23,15 @@ export const getProductById = async (req: Request, res: Response) => {
     const product = await productService.get(req.params.id);
     res.json(product);
   } catch (error) {
-    res.status(404).json({ message: (error as Error).message, error: 'Not Found', statusCode: 404 });
+    if (error instanceof NotFoundError) {
+      res.status(404).json({ message: error.message, error: 'Not Found', statusCode: 404 });
+    } else if (error instanceof ValidationError) {
+      res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
+    } else if (error instanceof DatabaseError) {
+      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+    } else {
+      res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
+    }
   }
 };
 
@@ -28,7 +40,13 @@ export const createProduct = async (req: Request, res: Response) => {
     const product = await productService.create(req.body);
     res.status(201).json(product);
   } catch (error) {
-    res.status(400).json({ message: (error as Error).message, error: 'Bad Request', statusCode: 400 });
+    if (error instanceof ValidationError) {
+      res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
+    } else if (error instanceof DatabaseError) {
+      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+    } else {
+      res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
+    }
   }
 };
 
@@ -37,7 +55,15 @@ export const updateProduct = async (req: Request, res: Response) => {
     const product = await productService.update(req.params.id, req.body);
     res.json(product);
   } catch (error) {
-    res.status(404).json({ message: (error as Error).message, error: 'Not Found', statusCode: 404 });
+    if (error instanceof NotFoundError) {
+      res.status(404).json({ message: error.message, error: 'Not Found', statusCode: 404 });
+    } else if (error instanceof ValidationError) {
+      res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
+    } else if (error instanceof DatabaseError) {
+      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+    } else {
+      res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
+    }
   }
 };
 
@@ -46,6 +72,14 @@ export const deleteProduct = async (req: Request, res: Response) => {
     await productService.delete(req.params.id);
     res.status(200).json({ message: 'Product deleted successfully' });
   } catch (error) {
-    res.status(404).json({ message: (error as Error).message, error: 'Not Found', statusCode: 404 });
+    if (error instanceof NotFoundError) {
+      res.status(404).json({ message: error.message, error: 'Not Found', statusCode: 404 });
+    } else if (error instanceof ValidationError) {
+      res.status(400).json({ message: error.message, error: 'Bad Request', statusCode: 400 });
+    } else if (error instanceof DatabaseError) {
+      res.status(500).json({ message: error.message, error: 'Internal Server Error' });
+    } else {
+      res.status(500).json({ message: (error as Error).message, error: 'Internal Server Error' });
+    }
   }
 }; 

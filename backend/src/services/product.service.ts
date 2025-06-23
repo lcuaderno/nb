@@ -2,45 +2,71 @@ import pool from '../config/database';
 import { Product, ProductInput, ProductUpdate } from '../models/product';
 import { v4 as uuidv4 } from 'uuid';
 
+// Custom error classes
+export class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NotFoundError';
+  }
+}
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+export class DatabaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DatabaseError';
+  }
+}
+
 export class ProductService {
   // Create a new product
   async create(input: ProductInput): Promise<Product> {
-    const id = uuidv4();
-    const result = await pool.query(
-      'INSERT INTO products (id, name, description, price, tags) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [id, input.name, input.description, input.price, input.tags]
-    );
-    return this.rowToProduct(result.rows[0]);
+    try {
+      const id = uuidv4();
+      const result = await pool.query(
+        'INSERT INTO products (id, name, description, price, tags) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [id, input.name, input.description, input.price, input.tags]
+      );
+      return this.rowToProduct(result.rows[0]);
+    } catch (err: any) {
+      throw new DatabaseError('Failed to create product: ' + err.message);
+    }
   }
 
   // Get a product by ID
   async get(id: string): Promise<Product> {
     if (!this.isValidUUID(id)) {
-      throw new Error('Product not found');
+      throw new ValidationError('Invalid product ID');
     }
-
-    const result = await pool.query(
-      'SELECT * FROM products WHERE id = $1',
-      [id]
-    );
-    
-    if (result.rows.length === 0) {
-      throw new Error('Product not found');
+    try {
+      const result = await pool.query(
+        'SELECT * FROM products WHERE id = $1',
+        [id]
+      );
+      if (result.rows.length === 0) {
+        throw new NotFoundError('Product not found');
+      }
+      return this.rowToProduct(result.rows[0]);
+    } catch (err: any) {
+      if (err instanceof NotFoundError) throw err;
+      throw new DatabaseError('Failed to get product: ' + err.message);
     }
-    
-    return this.rowToProduct(result.rows[0]);
   }
 
   // Update a product
   async update(id: string, updates: ProductUpdate): Promise<Product> {
     if (!this.isValidUUID(id)) {
-      throw new Error('Product not found');
+      throw new ValidationError('Invalid product ID');
     }
-
     const fields = [];
     const values = [];
     let paramCount = 1;
-
     if (updates.name !== undefined) {
       fields.push(`name = $${paramCount}`);
       values.push(updates.name);
@@ -61,44 +87,52 @@ export class ProductService {
       values.push(updates.tags);
       paramCount++;
     }
-
     if (fields.length === 0) {
       return this.get(id);
     }
-
     values.push(id);
-    const result = await pool.query(
-      `UPDATE products SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`,
-      values
-    );
-
-    if (result.rows.length === 0) {
-      throw new Error('Product not found');
+    try {
+      const result = await pool.query(
+        `UPDATE products SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+      if (result.rows.length === 0) {
+        throw new NotFoundError('Product not found');
+      }
+      return this.rowToProduct(result.rows[0]);
+    } catch (err: any) {
+      if (err instanceof NotFoundError) throw err;
+      throw new DatabaseError('Failed to update product: ' + err.message);
     }
-
-    return this.rowToProduct(result.rows[0]);
   }
 
   // Delete a product
   async delete(id: string): Promise<void> {
     if (!this.isValidUUID(id)) {
-      throw new Error('Product not found');
+      throw new ValidationError('Invalid product ID');
     }
-
-    const result = await pool.query(
-      'DELETE FROM products WHERE id = $1 RETURNING id',
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      throw new Error('Product not found');
+    try {
+      const result = await pool.query(
+        'DELETE FROM products WHERE id = $1 RETURNING id',
+        [id]
+      );
+      if (result.rows.length === 0) {
+        throw new NotFoundError('Product not found');
+      }
+    } catch (err: any) {
+      if (err instanceof NotFoundError) throw err;
+      throw new DatabaseError('Failed to delete product: ' + err.message);
     }
   }
 
   // List all products
   async list(): Promise<Product[]> {
-    const result = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
-    return result.rows.map(this.rowToProduct);
+    try {
+      const result = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
+      return result.rows.map(this.rowToProduct);
+    } catch (err: any) {
+      throw new DatabaseError('Failed to list products: ' + err.message);
+    }
   }
 
   // Helper method to convert database row to Product
