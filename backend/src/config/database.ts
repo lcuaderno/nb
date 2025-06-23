@@ -37,6 +37,8 @@ export const initializeDatabase = async () => {
             description TEXT,
             price DECIMAL(10,2) NOT NULL,
             tags TEXT[] DEFAULT '{}',
+            category VARCHAR(255),
+            brand VARCHAR(255),
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
@@ -53,6 +55,18 @@ export const initializeDatabase = async () => {
               WHERE table_name='products' AND column_name='deleted_at'
             ) THEN
               ALTER TABLE products ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns 
+              WHERE table_name='products' AND column_name='category'
+            ) THEN
+              ALTER TABLE products ADD COLUMN category VARCHAR(255);
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns 
+              WHERE table_name='products' AND column_name='brand'
+            ) THEN
+              ALTER TABLE products ADD COLUMN brand VARCHAR(255);
             END IF;
           END$$;
         `);

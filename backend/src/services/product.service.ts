@@ -30,8 +30,8 @@ export class ProductService {
     try {
       const id = uuidv4();
       const result = await pool.query(
-        'INSERT INTO products (id, name, description, price, tags) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [id, input.name, input.description, input.price, input.tags]
+        'INSERT INTO products (id, name, description, price, tags, category, brand) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [id, input.name, input.description, input.price, input.tags, input.category ?? null, input.brand ?? null]
       );
       return this.rowToProduct(result.rows[0]);
     } catch (err: any) {
@@ -85,6 +85,16 @@ export class ProductService {
     if (updates.tags !== undefined) {
       fields.push(`tags = $${paramCount}`);
       values.push(updates.tags);
+      paramCount++;
+    }
+    if (updates.category !== undefined) {
+      fields.push(`category = $${paramCount}`);
+      values.push(updates.category);
+      paramCount++;
+    }
+    if (updates.brand !== undefined) {
+      fields.push(`brand = $${paramCount}`);
+      values.push(updates.brand);
       paramCount++;
     }
     if (fields.length === 0) {
@@ -164,6 +174,8 @@ export class ProductService {
       description: row.description,
       price: Number(row.price),
       tags: row.tags || [],
+      category: row.category ?? undefined,
+      brand: row.brand ?? undefined,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
       deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,

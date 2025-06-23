@@ -15,6 +15,8 @@ export default function ProductForm() {
     description: '',
     price: 0,
     tags: [],
+    category: '',
+    brand: '',
   });
   const [priceInput, setPriceInput] = useState('0');
   const [tagInput, setTagInput] = useState('');
@@ -58,6 +60,8 @@ export default function ProductForm() {
         description: product.description,
         price: product.price,
         tags: product.tags,
+        category: product.category || '',
+        brand: product.brand || '',
       });
       setPriceInput(product.price.toString());
     }
@@ -215,6 +219,34 @@ export default function ProductForm() {
             }}
           />
           {errors.price && <div className="error-message">{errors.price}</div>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="category" className="form-label">
+            Category
+          </label>
+          <input
+            type="text"
+            id="category"
+            className="input"
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+          />
+          {errors.category && <div className="error-message">{errors.category}</div>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="brand" className="form-label">
+            Brand
+          </label>
+          <input
+            type="text"
+            id="brand"
+            className="input"
+            value={formData.brand}
+            onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+          />
+          {errors.brand && <div className="error-message">{errors.brand}</div>}
         </div>
 
         <div className="form-group">

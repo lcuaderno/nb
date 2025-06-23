@@ -4,6 +4,8 @@ export interface Product {
   description: string;
   price: number;
   tags: string[];
+  category?: string;
+  brand?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,6 +15,8 @@ export interface ProductFormData {
   description: string;
   price: number;
   tags: string[];
+  category?: string;
+  brand?: string;
 }
 
 export interface ProductFormErrors {
@@ -20,4 +24,6 @@ export interface ProductFormErrors {
   description?: string;
   price?: string;
   tags?: string;
+  category?: string;
+  brand?: string;
 } 

@@ -12,6 +12,8 @@ interface Product {
   description: string;
   price: number;
   tags: string[];
+  category?: string;
+  brand?: string;
 }
 
 export default function ProductList() {
@@ -102,6 +104,8 @@ export default function ProductList() {
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Description</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Price</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Category</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Brand</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tags</th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
@@ -119,6 +123,12 @@ export default function ProductList() {
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                         ${product.price.toFixed(2)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                        {product.category || '-'}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
+                        {product.brand || '-'}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
                         {product.tags?.join(', ')}
