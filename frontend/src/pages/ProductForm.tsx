@@ -184,7 +184,7 @@ export default function ProductForm() {
     }
   };
 
-  if (isProductLoading) return <div className="text-center py-4">Loading...</div>;
+  if (isEditing && isProductLoading) return <div className="text-center py-4">Loading...</div>;
   if (degraded) return <div className="text-center py-4 text-yellow-600 bg-yellow-100">Service is temporarily unavailable. Please try again later.</div>;
   if (apiError) return <div className="text-center py-4 text-red-600">Error: {apiError}</div>;
 
