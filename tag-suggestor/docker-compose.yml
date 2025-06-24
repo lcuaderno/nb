@@ -19,5 +19,15 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
+  test:
+    build: .
+    command: ["pytest", "--maxfail=1", "--disable-warnings"]
+    environment:
+      - OLLAMA_HOST=ollama
+    depends_on:
+      - ollama
+    volumes:
+      - .:/app
+
 volumes:
   ollama_data: 

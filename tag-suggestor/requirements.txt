@@ -1,3 +1,17 @@
+# Tag Suggestor Service Requirements
+# Core, API, and test dependencies
 fastapi>=0.104.0
-uvicorn>=0.24.0
+httpx>=0.24.0
+numpy>=1.24.0
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
 requests>=2.31.0
+scikit-learn>=1.2.2
+sentence-transformers>=2.2.2
+uvicorn>=0.24.0
+# Optional: For LLM and semantic tests, ensure Ollama is running and models are pulled.
+# For minimal install (no tests): pip install fastapi uvicorn requests
+# For semantic only: pip install sentence-transformers scikit-learn numpy
+# For tests only: pip install pytest pytest-asyncio pytest-cov httpx
+# For LLM only: pip install requests

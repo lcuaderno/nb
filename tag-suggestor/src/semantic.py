@@ -1,7 +1,11 @@
 from typing import List
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+try:
+    from sentence_transformers import SentenceTransformer
+    from sklearn.metrics.pairwise import cosine_similarity
+    import numpy as np
+    SEMANTIC_TEST_AVAILABLE = True
+except ImportError:
+    SEMANTIC_TEST_AVAILABLE = False
 
 COMMON_TAGS = [
     "electronics", "clothing", "home", "kitchen", "beauty", "sports", "books",
@@ -19,10 +23,18 @@ def get_model():
     return _model
 
 def suggest_tags_semantic(name: str, description: str) -> List[str]:
+    """
+    Suggest up to 3 tags for a product using semantic similarity (sentence-transformers).
+    Returns a list of tags ranked by cosine similarity.
+    """
+    if not name.strip() and not description.strip():
+        return []
     model = get_model()
     input_text = f"{name} {description}"
     input_emb = model.encode([input_text])
     tag_embs = model.encode(COMMON_TAGS)
     sims = cosine_similarity(input_emb, tag_embs)[0]
     top_indices = np.argsort(sims)[::-1][:3]
-    return [COMMON_TAGS[i] for i in top_indices] 
+    return [COMMON_TAGS[i] for i in top_indices]
+
+__all__ = ["suggest_tags_semantic", "SEMANTIC_TEST_AVAILABLE"] 

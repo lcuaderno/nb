@@ -288,3 +288,99 @@ The LLM method has been enhanced with:
 ## License
 
 MIT 
+
+## Running Tests
+
+To run the test suite for the tag-suggestor service:
+
+```bash
+# (Recommended) Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies (including test dependencies)
+pip install -r requirements.txt
+
+# Run all tests
+PYTHONPATH=. pytest
+
+# Run with coverage (optional)
+PYTHONPATH=. pytest --cov=src
+```
+
+Test files are located in the `tests/` directory. The suite covers all tag suggestion methods (simple, semantic, LLM) and the FastAPI endpoints.
+
+> **Note:** LLM tests are skipped if the Ollama health check fails. This is expected if Ollama is not running or not reachable.
+
+## Test Coverage Goals
+
+- Aim for 90%+ coverage on core logic (simple, semantic, llm modules).
+- Cover all API endpoints and error cases.
+- Use `pytest --cov=src` to check coverage.
+
+## Test Directory Structure
+
+- All tests are in the `tests/` directory at the project root.
+- Test files should be named `test_*.py`.
+- Organize tests by module (e.g., `test_simple.py`, `test_llm.py`, `test_semantic.py`, `test_service.py`).
+
+## Running a Specific Test
+
+To run only a specific test file:
+
+```bash
+pytest tests/test_simple.py
+```
+
+To run a specific test case:
+
+```bash
+pytest tests/test_simple.py -k "test_tag_suggestion_basic"
+```
+
+## Test Output and Reporting
+
+- By default, pytest prints a summary of test results.
+- To see detailed output, use `pytest -v`.
+- To generate a coverage report:
+
+```bash
+pytest --cov=src
+```
+
+- To generate an HTML coverage report:
+
+```bash
+pytest --cov=src --cov-report=html
+open htmlcov/index.html
+```
+
+## CI/CD Integration
+
+To run tests automatically in CI/CD, add a step to your workflow:
+
+```yaml
+- name: Run Python tests
+  run: |
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    pytest --cov=src
+```
+
+## Test Environment Variables
+
+- LLM tests use `OLLAMA_HOST` (default: `localhost`).
+- Semantic tests require `sentence-transformers` and `scikit-learn`.
+- You can override the Ollama host for tests with:
+
+```bash
+export OLLAMA_HOST=127.0.0.1
+pytest
+```
+
+## Test Maintainers
+
+- Please contact the repository maintainer for questions about the test suite or to request new tests.
+
+*Contributions to the test suite are welcome!*

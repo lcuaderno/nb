@@ -58,3 +58,21 @@ htmlcov/
 .nox/
 coverage.xml
 *.cover
+
+# Test and coverage
+__pycache__/
+*.py[cod]
+*.cover
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.coveragerc
+htmlcov/
+.tox/
+.pytest_cache/
+test-results/
+
+tests/__pycache__/
+tests/.pytest_cache/
+tests/test-results/

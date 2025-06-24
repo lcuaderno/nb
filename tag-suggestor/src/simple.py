@@ -44,6 +44,10 @@ TAG_KEYWORDS = {
 }
 
 def calculate_tag_score(text: str, tag: str) -> float:
+    """
+    Calculate a score for how well a tag matches the input text.
+    Higher score means more relevant.
+    """
     text = text.lower()
     score = 0.0
     if tag.lower() in text:
@@ -58,8 +62,13 @@ def calculate_tag_score(text: str, tag: str) -> float:
     return score
 
 def suggest_tags_simple(name: str, description: str) -> List[str]:
+    """
+    Suggest up to 3 tags for a product based on name and description using keyword and tag matching.
+    """
     text = f"{name} {description}"
     tag_scores = [(tag, calculate_tag_score(text, tag)) for tag in COMMON_TAGS]
     tag_scores.sort(key=lambda x: x[1], reverse=True)
     suggested_tags = [tag for tag, score in tag_scores[:3] if score > 0]
-    return suggested_tags 
+    return suggested_tags
+
+__all__ = ["suggest_tags_simple"] 

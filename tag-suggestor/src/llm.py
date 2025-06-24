@@ -36,6 +36,10 @@ PROMPT_TEMPLATE = (
 )
 
 def suggest_tags_llm(name: str, description: str) -> List[str]:
+    """
+    Suggest up to 3 tags for a product using a local LLM via Ollama.
+    Returns a list of tags. Falls back to splitting if JSON parse fails.
+    """
     prompt = PROMPT_TEMPLATE.format(name=name, description=description)
     response = requests.post(
         OLLAMA_URL,
@@ -60,4 +64,13 @@ def suggest_tags_llm(name: str, description: str) -> List[str]:
             pass
     # Fallback: split by commas or newlines
     tags = [t.strip(' "') for t in re.split(r'[\n,]', text) if t.strip()]
-    return tags[:3] 
+    return tags[:3]
+
+def is_ollama_available() -> bool:
+    try:
+        r = requests.get(f"http://{OLLAMA_HOST}:11434/api/tags", timeout=2)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+__all__ = ["suggest_tags_llm", "is_ollama_available"] 
