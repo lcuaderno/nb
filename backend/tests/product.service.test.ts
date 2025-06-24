@@ -156,4 +156,34 @@ describe('ProductService', () => {
       expect(idsPage1.some(id => idsPage2.includes(id))).toBe(false);
     });
   });
+
+  describe('edge cases and validation', () => {
+    it('should not create a product with missing name', async () => {
+      const badProduct = { ...testProduct, name: '' };
+      await expect(productService.create(badProduct)).rejects.toThrow();
+    });
+
+    it('should not create a product with NaN price', async () => {
+      const badProduct = { ...testProduct, price: NaN };
+      await expect(productService.create(badProduct)).rejects.toThrow();
+    });
+
+    it('should not create a product with invalid tags', async () => {
+      const badProduct = { ...testProduct, tags: [123, null] as any };
+      await expect(productService.create(badProduct)).rejects.toThrow();
+    });
+
+    it('should handle empty product list', async () => {
+      await pool.query('DELETE FROM products WHERE name LIKE $1', [`${testPrefix}%`]);
+      const result = await productService.list({ limit: 10, name: testPrefix });
+      expect(result.products).toEqual([]);
+      expect(result.hasMore).toBe(false);
+    });
+
+    it('should not update with invalid fields', async () => {
+      const created = await productService.create(testProduct);
+      await expect(productService.update(created.id!, { price: NaN })).rejects.toThrow();
+      await expect(productService.update(created.id!, { tags: [null] as any })).rejects.toThrow();
+    });
+  });
 }); 

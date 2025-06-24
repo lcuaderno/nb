@@ -1,5 +1,5 @@
 import pool from '../config/database';
-import { Product, ProductInput, ProductUpdate } from '../models/product';
+import { Product, ProductInput, ProductUpdate, ProductSchema } from '../models/product';
 import { v4 as uuidv4 } from 'uuid';
 
 // Custom error classes
@@ -28,6 +28,8 @@ export class ProductService {
   // Create a new product
   async create(input: ProductInput): Promise<Product> {
     try {
+      // Validate input
+      ProductSchema.omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true }).parse(input);
       const id = uuidv4();
       const result = await pool.query(
         'INSERT INTO products (id, name, description, price, tags, category, brand) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
@@ -35,6 +37,8 @@ export class ProductService {
       );
       return this.rowToProduct(result.rows[0]);
     } catch (err: any) {
+      if (err instanceof ValidationError) throw err;
+      if (err.name === 'ZodError') throw new ValidationError('Invalid product input: ' + err.message);
       throw new DatabaseError('Failed to create product: ' + err.message);
     }
   }
@@ -63,6 +67,15 @@ export class ProductService {
   async update(id: string, updates: ProductUpdate): Promise<Product> {
     if (!this.isValidUUID(id)) {
       throw new ValidationError('Invalid product ID');
+    }
+    // Fetch existing product for validation
+    const existing = await this.get(id);
+    const merged = { ...existing, ...updates };
+    try {
+      ProductSchema.omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true }).parse(merged);
+    } catch (err: any) {
+      if (err.name === 'ZodError') throw new ValidationError('Invalid product update: ' + err.message);
+      throw err;
     }
     const fields = [];
     const values = [];
