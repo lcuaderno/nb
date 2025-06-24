@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -12,18 +13,12 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     try {
-      // For demo purposes, we'll use a simple token
-      // In a real application, you would make an API call to your backend
-      if (username === 'admin' && password === 'admin') {
-        login('demo-token');
-        navigate('/products');
-      } else {
-        setError('Invalid credentials');
-      }
-    } catch (err) {
-      setError('An error occurred during login');
+      const response = await axios.post('/api/auth/login', { username, password });
+      login(response.data.token);
+      navigate('/products', { replace: true });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid credentials');
     }
   };
 

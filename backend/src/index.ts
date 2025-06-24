@@ -5,6 +5,7 @@ import { initializeDatabase, checkDatabaseConnection } from './config/database';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import type { Request, Response, NextFunction } from 'express';
+import authRoutes from './routes/auth.routes';
 
 const app = express();
 const port = process.env.PORT || 3010;
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 
 // Health check endpoint

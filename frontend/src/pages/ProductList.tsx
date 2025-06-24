@@ -109,6 +109,7 @@ export default function ProductList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setDeleteId(null);
+      fetchProducts(undefined, pageSize, searchName, searchTag);
     },
     onError: (err: any) => {
       if (err.response) {
